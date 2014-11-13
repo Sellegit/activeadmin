@@ -80,7 +80,7 @@ module ActiveAdmin
 
       def content_for(record, attr)
         previous = current_arbre_element.to_s
-        value    = pretty_format find_attr_value(record, attr)
+        value    = Class.new.extend(ActiveAdmin::ViewHelpers::DisplayHelper).pretty_format find_attr_value(record, attr)
         value.blank? && previous == current_arbre_element.to_s ? empty_value : value
       end
 
