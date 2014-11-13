@@ -1,3 +1,5 @@
+ActiveAdmin::Dependency.pundit!
+
 require 'pundit'
 
 module ActiveAdmin
@@ -8,7 +10,7 @@ module ActiveAdmin
       policy = retrieve_policy(subject)
       action = format_action(action, subject)
 
-      policy.class.method_defined?(action) && policy.send(action)
+      policy.class.method_defined?(action) && policy.public_send(action)
     end
 
     def scope_collection(collection, action = Auth::READ)
@@ -16,7 +18,6 @@ module ActiveAdmin
       # which means there is no way how to scope other actions
       Pundit.policy_scope!(user, collection)
     end
-
 
     def retrieve_policy(subject)
       case subject

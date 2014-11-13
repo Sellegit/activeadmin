@@ -11,14 +11,10 @@ ActiveAdmin::Application.inheritable_setting :comments_registration_name, 'Comme
 # Insert helper modules
 ActiveAdmin::Namespace.send :include, ActiveAdmin::Comments::NamespaceHelper
 ActiveAdmin::Resource.send  :include, ActiveAdmin::Comments::ResourceHelper
-
-# Add the module to the show page
 ActiveAdmin.application.view_factory.show_page.send :include, ActiveAdmin::Comments::ShowPageHelper
 
 # Load the model as soon as it's referenced. By that point, Rails & Kaminari will be ready
-module ActiveAdmin
-  autoload :Comment, 'active_admin/orm/active_record/comments/comment'
-end
+ActiveAdmin.autoload :Comment, 'active_admin/orm/active_record/comments/comment'
 
 # Walk through all the loaded namespaces after they're loaded
 ActiveAdmin.after_load do |app|
@@ -51,7 +47,8 @@ ActiveAdmin.after_load do |app|
           # Prevent N+1 queries
           def scoped_collection
             super.includes *( # rails/rails#14734
-              ActiveAdmin::Dependencies.rails?(:==, '4.1.0') ? [:author] : [:author, :resource]
+              ActiveAdmin::Dependency.rails?('>= 4.1.0', '<= 4.1.1') ?
+                [:author] : [:author, :resource]
             )
           end
 
@@ -65,11 +62,11 @@ ActiveAdmin.after_load do |app|
               end
             end
           end
+        end
 
-          # Define the permitted params in case the app is using Strong Parameters
-          def permitted_params
-            params.permit active_admin_comment: [:body, :namespace, :resource_id, :resource_type]
-          end unless Rails::VERSION::MAJOR == 3 && !defined? StrongParameters
+        # Set up permitted params in case the app is using Strong Parameters
+        unless Rails::VERSION::MAJOR == 3 && !defined? StrongParameters
+          permit_params :body, :namespace, :resource_id, :resource_type
         end
 
         index do

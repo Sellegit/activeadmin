@@ -82,9 +82,8 @@ module ActiveAdmin
 
       # make sure that the sortable children sorted in stable ascending order
       if column = builder_options[:sortable]
-        children = object.send(assoc)
-        children = children.sort_by do |o|
-          attribute = o.send(column)
+        children = object.public_send(assoc).sort_by do |o|
+          attribute = o.public_send column
           [attribute.nil? ? Float::INFINITY : attribute, o.id || Float::INFINITY]
         end
         options[:for] = [assoc, children]
@@ -167,7 +166,7 @@ module ActiveAdmin
     def js_for_has_many(assoc, form_block, template, new_record, class_string)
       assoc_reflection = object.class.reflect_on_association assoc
       assoc_name       = assoc_reflection.klass.model_name
-      placeholder      = "NEW_#{assoc_name.to_s.upcase.split(' ').join('_')}_RECORD"
+      placeholder      = "NEW_#{assoc_name.to_s.underscore.upcase}_RECORD"
       opts = {
         for: [assoc, assoc_reflection.klass.new],
         class: class_string,

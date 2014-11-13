@@ -115,3 +115,54 @@ Feature: Format as CSV
       | Title  | Body |
       | 012345 | (.*) |
     And the CSV file should contain "012345" in quotes
+
+  Scenario: With encoding CSV options
+    Given a configuration of:
+    """
+      ActiveAdmin.register Post do
+        csv :encoding => 'SJIS' do
+          column :title
+          column :body
+        end
+      end
+    """
+    And a post with the title "あいうえお" exists
+    When I am on the index page for posts
+    And I follow "CSV"
+    And the encoding of the CSV file should be "SJIS"
+
+  Scenario: With default encoding CSV options
+    Given a configuration of:
+    """
+      ActiveAdmin.application.csv_options = { :encoding => 'SJIS' }
+      ActiveAdmin.register Post do
+        csv do
+          column :title
+          column :body
+        end
+      end
+    """
+    And a post with the title "あいうえお" exists
+    When I am on the index page for posts
+    And I follow "CSV"
+    And the encoding of the CSV file should be "SJIS"
+
+  Scenario: With decorator
+    Given a configuration of:
+    """
+      ActiveAdmin.register Post do
+        decorate_with PostDecorator
+
+        csv do
+          column :id
+          column :title
+          column :decorator_method
+        end
+      end
+    """
+    And a post with the title "Hello World" exists
+    When I am on the index page for posts
+    And I follow "CSV"
+    And I should download a CSV file for "posts" containing:
+    | Id  | Title       | Decorator method                         |
+    | \d+ | Hello World | A method only available on the decorator |

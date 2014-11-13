@@ -82,6 +82,9 @@ module ActiveAdmin
     # A proc to be used when a user is not authorized to view the current resource
     inheritable_setting :on_unauthorized_access, :rescue_active_admin_access_denied
 
+    # A regex to detect unsupported browser, set to false to disable
+    inheritable_setting :unsupported_browser_matcher, /MSIE [1-8]\.0/
+
     # Active Admin makes educated guesses when displaying objects, this is
     # the list of methods it tries calling in order
     setting :display_name_methods, [ :display_name,
@@ -128,11 +131,10 @@ module ActiveAdmin
     def namespace(name)
       name ||= :root
 
-      if namespaces[name]
-        namespace = namespaces[name]
-      else
-        namespace = namespaces[name] = Namespace.new(self, name)
+      namespace = namespaces[name] ||= begin
+        namespace = Namespace.new(self, name)
         ActiveAdmin::Event.dispatch ActiveAdmin::Namespace::RegisterEvent, namespace
+        namespace
       end
 
       yield(namespace) if block_given?
@@ -200,12 +202,16 @@ module ActiveAdmin
     #
     %w(before_filter skip_before_filter after_filter skip_after_filter around_filter skip_filter).each do |name|
       define_method name do |*args, &block|
-        ActiveAdmin::BaseController.send              name, *args, &block
-        ActiveAdmin::Devise::PasswordsController.send name, *args, &block
-        ActiveAdmin::Devise::SessionsController.send  name, *args, &block
-        ActiveAdmin::Devise::UnlocksController.send   name, *args, &block
-        ActiveAdmin::Devise::RegistrationsController.send name, *args, &block
+        controllers_for_filters.each do |controller|
+          controller.public_send name, *args, &block
+        end
       end
+    end
+
+    def controllers_for_filters
+      controllers = [BaseController]
+      controllers.push *Devise.controllers_for_filters if Dependency.devise?
+      controllers
     end
 
   private

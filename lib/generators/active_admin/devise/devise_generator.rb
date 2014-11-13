@@ -12,8 +12,18 @@ module ActiveAdmin
 
       RESERVED_NAMES = [:active_admin_user]
 
+      class_option  :default_user, :type => :boolean, :default => true,
+                    :desc => "Should a default user be created inside the migration?"
+
       def install_devise
+        begin
+          Dependency.devise! Dependency::DEVISE
+        rescue DependencyError => e
+          raise Error, "#{e.message} If you don't want to use devise, run the generator with --skip-users."
+        end
+
         require 'devise'
+
         if File.exists?(File.join(destination_root, "config", "initializers", "devise.rb"))
           log :generate, "No need to install devise, already done."
         else
@@ -44,7 +54,7 @@ module ActiveAdmin
       def add_default_user_to_migration
         # Don't assume that we have a migration!
         devise_migration_file = Dir["db/migrate/*_devise_create_#{table_name}.rb"].first
-        return if devise_migration_file.nil?
+        return if devise_migration_file.nil? || !options[:default_user]
 
         devise_migration_content = File.read(devise_migration_file)
 

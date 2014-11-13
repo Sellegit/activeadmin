@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'rails_helper'
 
 describe ActiveAdmin::FormBuilder do
 
@@ -32,7 +32,7 @@ describe ActiveAdmin::FormBuilder do
   def build_form(options = {}, form_object = Post.new, &block)
     options = {url: helpers.posts_path}.merge(options)
 
-    render_arbre_component({form_object: form_object, form_options: options, form_block: block}, helpers)do
+    render_arbre_component({form_object: form_object, form_options: options, form_block: block}, helpers) do
       text_node active_admin_form_for(assigns[:form_object], assigns[:form_options], &assigns[:form_block])
     end.to_s
   end
@@ -91,19 +91,6 @@ describe ActiveAdmin::FormBuilder do
       expect(body).to have_tag("form", attributes: { enctype: "multipart/form-data" })
     end
   end
-
-  describe "passing in options with actions" do
-    let :body do
-      build_form html: { multipart: true } do |f|
-        f.inputs :title
-        f.actions
-      end
-    end
-    it "should pass the options on to the form" do
-      expect(body).to have_tag("form", attributes: { enctype: "multipart/form-data" })
-    end
-  end
-
 
   context "with actions" do
     it "should generate the form once" do
@@ -303,12 +290,17 @@ describe ActiveAdmin::FormBuilder do
       end
 
       it "should add a link to remove new nested records" do
-        expect(Capybara.string(body)).to have_css '.has_many_container > fieldset > ol > li > a', href: '#',
-          content: 'Remove', class: 'button has_many_remove', data: {placeholder: 'NEW_POST_RECORD'}
+        link = Capybara.string(body).find('.has_many_container > fieldset > ol > li > a.button.has_many_remove', text: 'Remove')
+        expect(link[:class]).to eq('button has_many_remove')
+        expect(link.text).to eq('Remove')
+        expect(link[:href]).to eq('#')
       end
 
       it "should add a link to add new nested records" do
-        expect(Capybara.string(body)).to have_css(".has_many_container > fieldset > ol > li > a", class: "button", href: "#", content: "Add New Post")
+        link = Capybara.string(body).find('.has_many_container > a.button.has_many_add')
+        expect(link[:class]).to eq('button has_many_add')
+        expect(link.text).to eq('Add New Post')
+        expect(link[:href]).to eq('#')
       end
     end
 
@@ -391,7 +383,7 @@ describe ActiveAdmin::FormBuilder do
       context "with an existing post" do
         let :body do
           build_form({url: '/categories'}, Category.new) do |f|
-            f.object.posts.build.stub(:new_record? => false)
+            allow(f.object.posts.build).to receive(:new_record?).and_return(false)
             f.has_many :posts, allow_destroy: true do |p|
               p.input :title
             end
@@ -448,7 +440,7 @@ describe ActiveAdmin::FormBuilder do
         end
 
       end
-      
+
       context "with post returning nil for the sortable attribute" do
         let :body do
           build_form({url: '/categories'}, Category.new) do |f|
@@ -461,11 +453,11 @@ describe ActiveAdmin::FormBuilder do
         end
 
         it "shows the nested fields for unsaved records" do
-          body.should have_tag("fieldset", attributes: {class: "inputs has_many_fields"})
+          expect(body).to have_tag("fieldset", attributes: {class: "inputs has_many_fields"})
         end
 
       end
-      
+
       context "with existing and new posts" do
         let! :category do
           Category.create name: 'Name'
@@ -483,7 +475,7 @@ describe ActiveAdmin::FormBuilder do
         end
 
         it "shows the nested fields for saved and unsaved records" do
-          body.should have_tag("fieldset", attributes: {class: "inputs has_many_fields"})
+          expect(body).to have_tag("fieldset", attributes: {class: "inputs has_many_fields"})
         end
 
       end
@@ -538,7 +530,7 @@ describe ActiveAdmin::FormBuilder do
       end
     end
 
-    pending "should render the block if it returns nil" do
+    skip "should render the block if it returns nil" do
       body = build_form({url: '/categories'}, Category.new) do |f|
         f.object.posts.build
         f.has_many :posts do |p|
@@ -600,16 +592,16 @@ describe ActiveAdmin::FormBuilder do
                                     max_date: "2013-12-31" }
           end
         end
-        it 'should generate a datepicker text input with data min and max dates' do
-          body.should have_tag("input", attributes: { type: "text",
-                                                            class: "datepicker",
-                                                            name: "post[created_at]",
-                                                            data: { datepicker_options: {
-                                                              minDate: "2013-10-18",
-                                                              maxDate: "2013-12-31" }.to_json }})
-        end
+      end
+
+      it 'should generate a datepicker text input with data min and max dates' do
+        expect(body).to have_tag("input", attributes: { type: "text",
+                                                        class: "datepicker",
+                                                        name: "post[created_at]",
+                                                        "data-datepicker-options" => CGI::escapeHTML({
+                                                          minDate: "2013-10-18",
+                                                          maxDate: "2013-12-31" }.to_json) })
       end
     end
   end
-
 end
